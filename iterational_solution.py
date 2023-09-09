@@ -28,17 +28,17 @@ class IterationalProblem:
     def solve_for_one_example(self, data):
         full_timetable = data["full_timetable"]
         stations = data["stations"]
-        needs = self.get_needs(stations)
-        routes = self.get_routes(full_timetable)
-        free_carriages = self.get_free_carriages(full_timetable)
-        trains, trains_encoding, trains_codes = self.get_trains(full_timetable)
+        needs = self._get_needs(stations)
+        routes = self._get_routes(full_timetable)
+        free_carriages = self._get_free_carriages(full_timetable)
+        trains, trains_encoding, trains_codes = self._get_trains(full_timetable)
         cities = list(map(lambda x: int(x[-2:-1]), stations.keys()))
         cities_names = list(map(lambda x: x[:-4], stations.keys()))
 
-        solution, leftover = self.run_iterations(
+        solution, leftover = self._run_iterations(
             needs, routes, free_carriages, trains_codes
         )
-        solution = self.generate_front_solution(
+        solution = self._generate_front_solution(
             solution,
             full_timetable,
             cities,
@@ -49,16 +49,16 @@ class IterationalProblem:
         )
         return solution, leftover
 
-    def get_needs(self, stations):
+    def _get_needs(self, stations):
         return np.array([list(stations.values())], dtype=np.int32)[0]
 
-    def get_routes(self, full_timetable):
+    def _get_routes(self, full_timetable):
         return [
             list(map(lambda x: int(x), list(full_timetable.values())[i]["route"]))
             for i in range(len(full_timetable.keys()))
         ]
 
-    def get_free_carriages(self, full_timetable):
+    def _get_free_carriages(self, full_timetable):
         return [
             list(
                 map(lambda x: int(x), list(full_timetable.values())[i]["free_carriage"])
@@ -66,13 +66,13 @@ class IterationalProblem:
             for i in range(len(full_timetable.keys()))
         ]
 
-    def get_trains(self, full_timetable):
+    def _get_trains(self, full_timetable):
         trains = list(full_timetable.keys())
         trains_encoding = {i: train for i, train in enumerate(trains)}
         trains_codes = range(len(trains))
         return (trains, trains_encoding, trains_codes)
 
-    def run_iterations(self, needs, routes, free_carriages, trains_codes):
+    def _run_iterations(self, needs, routes, free_carriages, trains_codes):
         n_trains = len(trains_codes)
         cars = [None] * n_trains
         for i, train in enumerate(trains_codes):
@@ -93,7 +93,7 @@ class IterationalProblem:
                     train_free_carriage[start_ind:end_ind] -= wagons
         return cars, needs
 
-    def sort_trains(self, routes, free_carriages, trains_codes):
+    def _sort_trains(self, routes, free_carriages, trains_codes):
         sortings = sorted(
             zip(routes, free_carriages, trains_codes),
             key=lambda x: (len(x[0]), -min(x[1])),
@@ -101,7 +101,7 @@ class IterationalProblem:
         routes, free_carriages, trains_codes = list(zip(*sortings))
         return routes, free_carriages, trains_codes
 
-    def generate_front_solution(
+    def _generate_front_solution(
         self,
         solution,
         full_timetable,
@@ -148,7 +148,7 @@ class IterationalProblem:
 def main():
     problem = IterationalProblem("dataset.json")
     problem.solve(to_return=False)
-    some_soln = problem.get_solution_for_city(0, "Златоуст")
+    some_soln = problem.get_solution_for_city(0, "Челябинск")
     print(some_soln)
 
 
