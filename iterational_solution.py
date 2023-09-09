@@ -16,19 +16,24 @@ class IterationalProblem:
 
     def solve(
         self,
-        to_return=False,
-        limit=1,
+        limit=20,
     ):
         self.solutions = [None] * limit
+        leftover = 0
+        sum_of_leftovers = 0
+        sum_of_gains = 0
         for ind, data in self.dataset.head(limit).iterrows():
-            solution, leftover = self.solve_for_one_example(data)
+            solution, leftover, gain = self.solve_for_one_example(data, leftover)
             self.solutions[ind] = solution
-        return self.solutions
+            sum_of_leftovers += leftover.sum()
+            sum_of_gains += gain.sum()
 
-    def solve_for_one_example(self, data):
+        return (sum_of_leftovers / limit, sum_of_gains / limit)
+
+    def solve_for_one_example(self, data, leftover):
         full_timetable = data["full_timetable"]
         stations = data["stations"]
-        needs = self._get_needs(stations)
+        needs = self._get_needs(stations, leftover)
         routes = self._get_routes(full_timetable)
         free_carriages = self._get_free_carriages(full_timetable)
         trains, trains_encoding, trains_codes = self._get_trains(full_timetable)
@@ -36,8 +41,9 @@ class IterationalProblem:
         cities_names = list(map(lambda x: x[:-4], stations.keys()))
 
         solution, leftover = self._run_iterations(
-            needs, routes, free_carriages, trains_codes
+            np.copy(needs), routes, free_carriages, trains_codes
         )
+        gain = needs - leftover
         solution = self._generate_front_solution(
             solution,
             full_timetable,
@@ -47,10 +53,14 @@ class IterationalProblem:
             trains_encoding,
             trains_codes,
         )
-        return solution, leftover
+        return solution, leftover, gain
 
-    def _get_needs(self, stations):
-        return np.array([list(stations.values())], dtype=np.int32)[0]
+    def _get_needs(self, stations, leftover):
+        needs = np.array([list(stations.values())], dtype=np.int32)[0]
+        if isinstance(leftover, int):
+            return needs
+        else:
+            return needs + leftover
 
     def _get_routes(self, full_timetable):
         return [
@@ -129,7 +139,10 @@ class IterationalProblem:
                     num_of_cars = sum([solution[j][key] for key in appropriate_cars])
                     train = trains_encoding[trains_codes[j]]
                     city_ind = route.index(city)
-                    time = full_timetable[train]["timetable"][city_ind]
+                    try:
+                        time = full_timetable[train]["timetable"][city_ind]
+                    except IndexError:
+                        time = "Error"
                     arrival_time = time[:5]
                     departure_time = time[-5:]
                     cities_info[i]["trains"].append(trains_encoding[j])
@@ -147,8 +160,9 @@ class IterationalProblem:
 
 def main():
     problem = IterationalProblem("dataset.json")
-    problem.solve(to_return=False)
-    some_soln = problem.get_solution_for_city(0, "Челябинск")
+    mean_leftover, mean_gain = problem.solve()
+    print(mean_leftover, mean_gain)
+    some_soln = problem.get_solution_for_city(1, "Челябинск")
     print(some_soln)
 
 
