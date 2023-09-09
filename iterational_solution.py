@@ -11,13 +11,19 @@ class IterationalProblem:
     def __init__(self, datapath) -> None:
         self.dataset = pd.read_json(datapath)
 
+    def get_solution_for_city(self, day, city):
+        return self.solutions[day][city]
+
     def solve(
         self,
+        to_return=False,
+        limit=1,
     ):
-        for ind, data in self.dataset.iterrows():
+        self.solutions = [None] * limit
+        for ind, data in self.dataset.head(limit).iterrows():
             solution, leftover = self.solve_for_one_example(data)
-            break
-        return solution
+            self.solutions[ind] = solution
+        return self.solutions
 
     def solve_for_one_example(self, data):
         full_timetable = data["full_timetable"]
@@ -107,7 +113,7 @@ class IterationalProblem:
         verbose=False,
     ):
         cities_info = {}
-        frames = [None] * len(cities)
+        frames = {cities_names[city - 1]: None for city in cities}
         for i, city in enumerate(cities):
             cities_info[i] = {
                 "trains": [],
@@ -132,16 +138,18 @@ class IterationalProblem:
                     cities_info[i]["departure time"].append(departure_time)
                     if verbose:
                         print(
-                            f"Город {city, cities_names[i]}: поезд {train} число вагонов {num_of_cars} время прибытия {arrival_time}"
+                            f"Город {city, cities_names[i]}: поезд {train} \
+                            число вагонов {num_of_cars} время прибытия {arrival_time}"
                         )
-            frames[i] = pd.DataFrame(cities_info[i])
+            frames[cities_names[city - 1]] = pd.DataFrame(cities_info[i])
         return frames
 
 
 def main():
     problem = IterationalProblem("dataset.json")
-    solution = problem.solve()
-    print(solution[0])
+    problem.solve(to_return=False)
+    some_soln = problem.get_solution_for_city(0, "Златоуст")
+    print(some_soln)
 
 
 if __name__ == "__main__":
