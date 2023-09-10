@@ -8,7 +8,7 @@ docker build -t rzd .
 docker run -dp 3000:3000 rzd
 ```
 
-Иначе можно запустить без `Docker`. Для этого надо выполнить команду 
+Иначе можно запустить без `Docker`. Для этого в папке с проектом нужно иметь файл ```dataset.json``` и надо выполнить команды
 ```
 pip install pandas
 pip install dash
